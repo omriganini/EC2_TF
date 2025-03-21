@@ -112,19 +112,29 @@ security_groups = [aws_security_group.tf_ec2_sg.id]
 key_name = aws_key_pair.tf_key.key_name
 user_data = <<-EOF
     #!/bin/bash
+    set -e  # Stop script on error
+
     sudo apt update -y
-    sudo apt install -y nginx unzip curl
+    sudo apt install -y nginx unzip curl wget fontconfig openjdk-17-jre
 
     # Install AWS CLI (latest version)
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
     unzip awscliv2.zip
     sudo ./aws/install
+    rm -rf aws awscliv2.zip
 
-    # Enable and start NGINX
+    # Install Jenkins
+    sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+    echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+    sudo apt update -y
+    sudo apt install -y jenkins
+
+    # Enable and start services
     sudo systemctl enable nginx
     sudo systemctl start nginx
-
-  EOF
+    sudo systemctl enable jenkins
+    sudo systemctl start jenkins
+EOF
 tags = {
 Name = "tf_web_server"
 }
