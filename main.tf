@@ -62,6 +62,21 @@ to_port = 22
 protocol = "tcp"
 cidr_blocks = ["31.210.177.3/32"] # Allow SSH from anywhere; adjust as needed
 }
+
+ingress {
+from_port = 8000
+to_port = 9000
+protocol = "tcp"
+cidr_blocks = ["31.210.177.3/32"] # Allow SSH from anywhere; adjust as needed
+}
+
+ingress {
+from_port = 80
+to_port = 5000
+protocol = "tcp"
+cidr_blocks = ["31.210.177.3/32"] # Allow SSH from anywhere; adjust as needed
+}
+
 egress {
 from_port = 0
 to_port = 0
@@ -70,9 +85,9 @@ cidr_blocks = ["0.0.0.0/0"]
 }
 tags = {
 Name = "ec2_sg"
+}
+}
 
-}
-}
 resource "aws_security_group" "tf_rds_sg" {
 vpc_id = aws_vpc.tf_vpc.id
 ingress {
@@ -110,6 +125,11 @@ availability_zone = "us-west-1a"
 subnet_id = aws_subnet.tf_public_subnet.id
 security_groups = [aws_security_group.tf_ec2_sg.id]
 key_name = aws_key_pair.tf_key.key_name
+ebs_block_device {
+    device_name = "/dev/sda1"
+    volume_type = "gp2"
+    volume_size = 20
+}
 user_data = <<-EOF
     #!/bin/bash
     set -e  # Stop script on error
