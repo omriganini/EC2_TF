@@ -1,53 +1,53 @@
 ##_________________VPC Creation____________________##
 
 resource "aws_vpc" "tf_vpc" {
-cidr_block = "10.0.0.0/16"
-tags = {
-Name = "tf_vpc"
-    }
+  cidr_block = "10.0.0.0/16"
+  tags = {
+    Name = "tf_vpc"
+  }
 }
 
 resource "aws_subnet" "tf_public_subnet" {
-vpc_id = aws_vpc.tf_vpc.id
-cidr_block = "10.0.1.0/24"
-availability_zone = "us-west-1a"
-map_public_ip_on_launch = true
-tags = {
-Name = "tf_public_subnet"
-    }
+  vpc_id                  = aws_vpc.tf_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-west-1a"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "tf_public_subnet"
+  }
 }
 
 resource "aws_subnet" "tf_private_subnet" {
-vpc_id = aws_vpc.tf_vpc.id
-cidr_block = "10.0.2.0/24"
-availability_zone = "us-west-1a"
-tags = {
-Name = "private_subnet"
-    }
+  vpc_id            = aws_vpc.tf_vpc.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-west-1a"
+  tags = {
+    Name = "private_subnet"
+  }
 }
 
 resource "aws_internet_gateway" "tf_igw" {
-vpc_id = aws_vpc.tf_vpc.id
-tags = {
-Name = "tf_main_igw"
-    }
+  vpc_id = aws_vpc.tf_vpc.id
+  tags = {
+    Name = "tf_main_igw"
+  }
 }
 
 resource "aws_route_table" "tf_public_route_table" {
-vpc_id = aws_vpc.tf_vpc.id
-route {
-cidr_block = "0.0.0.0/0"
-gateway_id = aws_internet_gateway.tf_igw.id
-}
-tags = {
-Name = "tf-public_route_table"
-    }
+  vpc_id = aws_vpc.tf_vpc.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.tf_igw.id
+  }
+  tags = {
+    Name = "tf-public_route_table"
+  }
 }
 
 
 resource "aws_route_table_association" "public_subnet_association" {
-subnet_id = aws_subnet.tf_public_subnet.id
-route_table_id = aws_route_table.tf_public_route_table.id
+  subnet_id      = aws_subnet.tf_public_subnet.id
+  route_table_id = aws_route_table.tf_public_route_table.id
 }
 
 
@@ -55,56 +55,56 @@ route_table_id = aws_route_table.tf_public_route_table.id
 ##__________________________Security Group#___________________________#
 
 resource "aws_security_group" "tf_ec2_sg" {
-vpc_id = aws_vpc.tf_vpc.id
-ingress {
-from_port = 22
-to_port = 22
-protocol = "tcp"
-cidr_blocks = ["31.210.177.3/32"] # Allow SSH from anywhere; adjust as needed
-}
+  vpc_id = aws_vpc.tf_vpc.id
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["31.210.177.3/32"] # Allow SSH from anywhere; adjust as needed
+  }
 
-ingress {
-from_port = 8000
-to_port = 9000
-protocol = "tcp"
-cidr_blocks = ["31.210.177.3/32"] # Allow SSH from anywhere; adjust as needed
-}
+  ingress {
+    from_port   = 8000
+    to_port     = 9000
+    protocol    = "tcp"
+    cidr_blocks = ["31.210.177.3/32"] # Allow SSH from anywhere; adjust as needed
+  }
 
-ingress {
-from_port = 80
-to_port = 5000
-protocol = "tcp"
-cidr_blocks = ["31.210.177.3/32"] # Allow SSH from anywhere; adjust as needed
-}
+  ingress {
+    from_port   = 80
+    to_port     = 5000
+    protocol    = "tcp"
+    cidr_blocks = ["31.210.177.3/32"] # Allow SSH from anywhere; adjust as needed
+  }
 
-egress {
-from_port = 0
-to_port = 0
-protocol = "-1"
-cidr_blocks = ["0.0.0.0/0"]
-}
-tags = {
-Name = "ec2_sg"
-}
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = {
+    Name = "ec2_sg"
+  }
 }
 
 resource "aws_security_group" "tf_rds_sg" {
-vpc_id = aws_vpc.tf_vpc.id
-ingress {
-from_port = 3306 # Default MySQL port; adjust for your DB engine
-to_port = 3306
-protocol = "tcp"
-cidr_blocks = ["10.0.0.0/16"] # Allow access from within the VPC
-}
-egress {
-from_port = 0
-to_port = 0
-protocol = "-1"
-cidr_blocks = ["0.0.0.0/0"]
-}
-tags = {
-Name = "rds_sg"
-    }
+  vpc_id = aws_vpc.tf_vpc.id
+  ingress {
+    from_port   = 3306 # Default MySQL port; adjust for your DB engine
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"] # Allow access from within the VPC
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = {
+    Name = "rds_sg"
+  }
 }
 
 
@@ -113,24 +113,24 @@ Name = "rds_sg"
 
 resource "aws_key_pair" "tf_key" {
   key_name   = "tf_key_pair"
-  public_key = file("C:/Users/omrig/.ssh/id_rsa.pub")
-
+  public_key = var.ssh_public_key
 }
+
 
 
 resource "aws_instance" "tf_web_server" {
-ami = "ami-07d2649d67dbe8900"
-instance_type = "t3.micro"
-availability_zone = "us-west-1a"
-subnet_id = aws_subnet.tf_public_subnet.id
-security_groups = [aws_security_group.tf_ec2_sg.id]
-key_name = aws_key_pair.tf_key.key_name
-ebs_block_device {
+  ami               = "ami-07d2649d67dbe8900"
+  instance_type     = "t3.micro"
+  availability_zone = "us-west-1a"
+  subnet_id         = aws_subnet.tf_public_subnet.id
+  security_groups   = [aws_security_group.tf_ec2_sg.id]
+  key_name          = aws_key_pair.tf_key.key_name
+  ebs_block_device {
     device_name = "/dev/sda1"
     volume_type = "gp2"
     volume_size = 20
-}
-user_data = <<-EOF
+  }
+  user_data = <<-EOF
     #!/bin/bash
     set -e  # Stop script on error
 
@@ -155,7 +155,7 @@ user_data = <<-EOF
     sudo systemctl enable jenkins
     sudo systemctl start jenkins
 EOF
-tags = {
-Name = "tf_web_server"
-}
+  tags = {
+    Name = "tf_web_server"
+  }
 }
